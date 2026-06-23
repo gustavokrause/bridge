@@ -1,0 +1,12 @@
+{
+  "name": "bridge",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Fleet control room for ai-team + whale + krill.",
+  "scripts": {
+    "start": "bash bin/start.sh",
+    "stop": "bash bin/stop.sh",
+    "status": "bash bin/status.sh",
+    "rebuild": "bash bin/rebuild.sh"
+  }
+}
