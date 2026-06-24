@@ -72,9 +72,12 @@ Implication for self-modification: a merged change only takes effect after
 ## Safety (self-modification)
 
 whale and krill improve *themselves* through this loop. Guards in place:
-- whale's triage forces any task targeting `whale`/`krill` to **human review,
-  never bypass/auto-finish** (the self-edit guard) — holds on **every** dial,
-  including `ludicrous`.
+- the self-edit guard: any task targeting `whale`/`krill` **never skips planning
+  and never auto-finishes** — planning always runs and the deliverable always
+  gets a human review before merge, on **every** dial incl. `ludicrous`. (triage
+  also seeds these off by default.) The plan-*review* step, AI-review, and verify
+  are opt-in per task even for self-edits — the deliverable gate still holds, so
+  nothing self-modifying merges to main unattended.
 - Work runs in krill **worktrees** → lands as **PRs**; the running process keeps
   old code until *you restart*. Roll back with git + restart.
 - `../whale && npm test` is the merge gate. Never merge a self-edit that fails.
@@ -82,7 +85,8 @@ whale and krill improve *themselves* through this loop. Guards in place:
 The autonomy envelope is now wider — know what you've armed:
 - **Dials**: `conservative · balanced · aggressive · autonomous · ludicrous`.
   `ludicrous` auto-finishes **every risk tier** (migrations/auth/deploy merge to
-  main unattended); `autonomous` does low+medium. Self-edit always gated.
+  main unattended); `autonomous` does low+medium. Self-edit never skips
+  planning/auto-finishes (deliverable always reviewed).
 - **krill loads your user MCP** (e.g. Supabase) into the executor — an armed task
   can write external systems unattended. `KRILL_STRICT_MCP=1` isolates it.
 - **Blocker queue**: when whale/krill hit an interactive wall (MCP auth, CLI
