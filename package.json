@@ -7,6 +7,7 @@
     "start": "bash bin/start.sh",
     "stop": "bash bin/stop.sh",
     "status": "bash bin/status.sh",
-    "rebuild": "bash bin/rebuild.sh"
+    "rebuild": "bash bin/rebuild.sh",
+    "watch": "bash bin/watch.sh"
   }
 }

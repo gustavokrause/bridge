@@ -8,6 +8,7 @@ New here, or explaining it to someone? → [`docs/PITCH.md`](docs/PITCH.md).
 npm start       # boot krill (:3000) + whale (:4100)
 npm run status  # diagnose the fleet
 npm stop        # stop both
+npm run watch   # follow a krill task through the pipeline (read-only)
 ```
 
 The fleet:

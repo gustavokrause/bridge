@@ -27,6 +27,10 @@ writes them; talks to krill over HTTP only.
 npm start      # boot krill + whale (idempotent; ./bin/start.sh)
 npm run status # diagnose the whole fleet  (./bin/status.sh)
 npm stop       # stop both by port         (./bin/stop.sh)
+npm run watch  # follow next new krill task to terminal state; `-- <task-id>`
+               # for a specific one. Logs transitions, dumps per-stage
+               # model/tokens/cost + diff_text capture at the end. Read-only.
+               # (./bin/watch.sh)
 ```
 
 Logs land in `./logs/`. Both run **real Claude** by default: whale via its `.env`
@@ -98,11 +102,21 @@ The autonomy envelope is now wider — know what you've armed:
     interactive session (`claude` → `/mcp` → authorize), which caches the token;
     krill's headless runner reuses it. Then **Resume** the blocker.
 - **Dead-worker recovery**: a restart orphans whatever krill had in flight (the
-  worker dies with the process, claim outlives it). krill flags those tasks
-  **"worker dead"** on the board with a countdown to the claim-TTL self-heal and a
-  **Recover** button (force-release → re-picked next tick). Detection is by
-  per-boot generation (`claim_gen`); nothing re-runs unattended beyond the
-  existing TTL self-heal.
+  worker dies with the process, claim outlives it). Detection is by per-boot
+  generation (`claim_gen`); the stuck scanner now **auto-releases** dead-process
+  claims within ~a minute (re-picked next tick), so the board's "worker dead" +
+  **Recover** button is a manual override, not the only path. Nothing re-runs
+  unattended beyond that re-pick.
+- **Always-concludes backstops**: no task can loop or hang silently forever.
+  A stage stuck past its duration limit notifies; past the **hard cap**
+  (3× the limit) the scanner force-parks it at `NEEDS_REVIEW(stuck)` and pauses
+  the line. AI-REVIEW/VERIFYING runs that repeatedly end without a verdict brake
+  to the same park after `max_ai_decline_cycles`; escalations have a lifetime
+  cap before a human is required. Orphaned worktrees are GC'd hourly.
+- **Review model ladder**: a task's first AI-REVIEW pass runs Sonnet; once a
+  review is contested (an AI decline cycle exists) re-reviews run Opus.
+  `stage_usage.model` records what actually ran — watch the decline-flip rate
+  before trusting the ladder further.
 - **Follow-ups pause picking**: when a krill task surfaces out-of-scope work it
   *seeds a follow-up* (a note, not a task — whale pulls these into its inbox). On
   every follow-up krill now also comments the origin task, files a **persistent

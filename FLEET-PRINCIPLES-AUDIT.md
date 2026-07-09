@@ -1,5 +1,14 @@
 # Fleet Principles Audit — whale + krill
 
+> **STATUS 2026-07-09: EXECUTED.** 23 of 26 tracker items shipped, live-verified
+> and serving; all 5 live-fire checkpoints (LF-0…LF-4) ran with recorded
+> results; A4 + B4 closed by evidence (gates never armed); **D2 is the sole
+> open item** (needs deliberate token spend — see tracker). First full loop on
+> the new machinery closed with the LF-1 task: dump → plan → human redo →
+> Sonnet decline → fix → Opus contested approve → verify → PR → **merged to prod**.
+> The sections below are the audit, its verification, and the execution
+> tracker, in historical order.
+
 > **Caio (AI/Orchestration).** I read the whole fleet against the four operating
 > principles in [`docs/principles/`](docs/principles/), then traced the real code
 > (not the docs) for evidence. This is not a feature wishlist. It's a gap report:
@@ -199,6 +208,9 @@ Sequenced by leverage. Each tier is independently shippable.
 
 ## One-line scorecard
 
+*(as audited 2026-06-26 — historical; see the post-execution scorecard at the
+end of this document)*
+
 | Principle | Where the fleet stands |
 |---|---|
 | Pipeline self-resolves | **~70%.** Concludes on AI-judgment; loops/strands on crash, hang, or no-verdict. VERIFY fix never generalized. |
@@ -324,11 +336,75 @@ the server runs the build; observe the *running fleet*.
 
 | Status | ID | When | What runs / what we watch |
 |---|---|---|---|
-| ⬜ TODO | LF-0 | **Before any code** | Baseline. One representative task end-to-end. Collect: per-stage tokens from `stage_usage` rollups, wall-clock per stage, any stall/park events. This is the number every B-tier claim gets judged against — without it, savings are vibes (Caio). |
-| ⬜ TODO | LF-1 | After A1+A2+A3 | Resilience run. Real case + watch the scanner's park log: healthy in-flight task must NOT be flagged (A2 proof); if anything hangs, it must conclude at the cap, not loop. **Gate decision:** A4 arms only if this log shows planning/implementing throw-loops actually occurring. |
-| ⬜ TODO | LF-2 | After B1+B2+B3 | Cost run. Same class of task as LF-0, compare `stage_usage` vs baseline. Watch: AI-REVIEW/VERIFY input drop, decline-flip rate flat (B2 quality guard). Decide here whether the B4 spike is worth scheduling. |
-| ⬜ TODO | LF-3 | After C1+C6 | Metric run. Plan real dumps, refine/reject as normal on the Proposed tab, confirm override-rate numbers actually appear per plan run and survive a re-onboard (C1 proof). |
-| ⬜ TODO | LF-4 | After C2+C3 | Intent run. Check CONTEXT.md gained folded Decisions/Principles; refine a task with a clear WHY, run the next plan — it must **not** re-propose the redirected work. Override rate from LF-3 is the before-number. |
+| ✅ DONE | LF-0 | **Before any code** | Baseline. One representative task end-to-end. Collect: per-stage tokens from `stage_usage` rollups, wall-clock per stage, any stall/park events. This is the number every B-tier claim gets judged against — without it, savings are vibes (Caio). **→ Results below.** |
+| ✅ DONE | LF-1 | After A1+A2+A3 | Resilience run. Real case + watch the scanner's park log: healthy in-flight task must NOT be flagged (A2 proof); if anything hangs, it must conclude at the cap, not loop. **Gate decision:** A4 arms only if this log shows planning/implementing throw-loops actually occurring. **→ Ran 2026-07-08 (the LF-1 task, a scraper feature): full chain concluded in ~21 min, zero stalls, zero false parks (10-min IMPLEMENTING correctly untouched by scanner), only intended gate hit. No throw-loops observed → A4 stays gated.** |
+| ✅ DONE | LF-2 | After B1+B2+B3 | Cost run. Same class of task as LF-0, compare `stage_usage` vs baseline. Watch: AI-REVIEW/VERIFY input drop, decline-flip rate flat (B2 quality guard). Decide here whether the B4 spike is worth scheduling. **→ LF-1 task results below; B4 spike stays unscheduled — Opus share collapsed 87%→34% without it.** |
+| ✅ DONE | LF-3 | After C1+C6 | Metric run. Plan real dumps, refine/reject as normal on the Proposed tab, confirm override-rate numbers actually appear per plan run and survive a re-onboard (C1 proof). **→ Ran 2026-07-09 on a pre-launch SaaS project: refine WHY captured verbatim into Standing principles; override rate live (4 proposed / 1 refined = 0.25 on that run); refine priced ($0.28). Found+fixed live: ledger had no dedup — repeated same-text refines burned cap slots; now dedupes by bullet body, newest date wins.** |
+| ✅ DONE | LF-4 | After C2+C3 | Intent run. Check CONTEXT.md gained folded Decisions/Principles; refine a task with a clear WHY, run the next plan — it must **not** re-propose the redirected work. Override rate from LF-3 is the before-number. **→ Ran 2026-07-09: probe dump directly tempted the idea the user had refined away the day before (build notification email infra pre-launch). Planner respected the captured principle: every email task explicitly gated on the email pipeline existing first ("don't build separate email infra"), plus a zero-infra UI-badge task as the interim. No blind re-propose. Volume note: 6 tasks for a "what's simplest?" question — routing economy worth watching, but content-level intent held. Bonus: first full consensus fan-out priced (D1): nominate+5 propose+3 sweep+synthesize = 10 calls ≈ $2.2/run.** |
+
+### LF-0 results (2026-07-08, a security-hardening task on an API project)
+
+Real dump (a follow-up seeded by an earlier krill task) → whale consensus plan
+→ human push → krill chain → PR parked at deliverable gate. Wall-clock ~8 min
+including one human gate (plan review).
+
+| Stage | Model | Input | Output | Cache write | Cache read | Cost | Turns | Duration |
+|---|---|---|---|---|---|---|---|---|
+| PLANNING | opus-4-7 | 40 | 7,893 | 88,666 | 1,476,728 | $1.82 | 26 | 149s |
+| IMPLEMENTING | sonnet-4-6 | 22 | 3,702 | 22,326 | 542,448 | $0.35 | 16 | 95s |
+| AI-REVIEW | opus-4-7 | 22 | 1,748 | 36,521 | 345,790 | $0.58 | 10 | 35s |
+| VERIFYING | — | *auto-skipped (docs-only diff)* | | | | | | |
+| PUBLISHING | — | *deterministic, no LLM* | | | | | | |
+| **Total** | | | | | | **$2.76** | | ~8 min |
+
+Reads on the baseline:
+- **Opus stages = 87% of cost** ($2.40 of $2.76) — B2's ladder aims at exactly
+  the right place.
+- **Intra-spawn cache works hard** (planning read 1.48M cached tokens) — the
+  `--exclude-dynamic-system-prompt-sections` lever is real; the waste is
+  *cross*-spawn, as diagnosed.
+- **Docs-only VERIFY skip fired** — B3's mechanism observed live (this task's
+  deliverable was doc-only, so the chain skipped a whole Sonnet spawn).
+- **No stalls, no parks beyond the intended human gates** — pipeline concluded
+  clean; zero evidence yet for A4's throw-loops (gate stays closed).
+- **Meta-finding (C-tier live proof):** the dump itself was **stale** — the
+  code was already fixed (`045d7f2`, Jun 11); the doc that spawned the
+  follow-up was written without cross-checking source. krill's planner caught
+  it and re-scoped to the doc-drift fix. whale proposed it because nothing
+  feeds ground-truth back into its context — 3.1's re-derivation gap, live.
+- **D1 confirmed live:** whale's plan-run cost is invisible (text output
+  format, no metering) — the whale side of this baseline cannot be priced.
+
+### LF-1/LF-2 results (2026-07-08, a runtime scraper-feature task on a listings project)
+
+First run on the new code (skip_plan_review armed by human; deliverable gate kept).
+TODO 19:14 → NEEDS_REVIEW(deliverable) 19:36 — ~21 min, no stalls, no parks
+beyond the intended gate.
+
+| Stage | Model | Output | Cache write | Cache read | Cost | Turns | Duration |
+|---|---|---|---|---|---|---|---|
+| PLANNING | opus-4-7 | 7,386 | 89,868 | 729,980 | $1.45 | 21 | 125s |
+| IMPLEMENTING | sonnet-4-6 | 33,032 | 70,852 | 2,937,247 | $1.80 | 53 | 608s |
+| AI-REVIEW | **sonnet-4-6** ← ladder live | 4,321 | 21,196 | 226,914 | $0.54 | 8 | 218s |
+| VERIFYING | sonnet-4-6 | 3,240 | 18,186 | 262,956 | $0.46 | 8 | 166s |
+| **Total** | | | | | **$4.26** | | ~21 min |
+
+Reads:
+- **B2 ladder live**: first review pass ran Sonnet and approved a 119k-char
+  diff for $0.54 — Opus at ~5× would have cost ~$2.5+. **Opus share of task
+  cost: 87% (LF-0) → 34%** (planning only). Decline-flip: none this run
+  (approved first pass, verify passed — no quality regression signal).
+- **B1 live**: `diff_text` captured (118,902 chars); review/verify read it
+  from task_context instead of re-deriving.
+- **B3 correctly did NOT fire**: runtime scraper change → full VERIFYING ran.
+- Whale side (D1 metering, same task): plan:single on Opus, $0.42 — the first
+  whale run ever priced.
+- Caveat: this task (runtime scraper) is a heavier class than LF-0's
+  (docs-only), so totals aren't same-class comparable; the per-stage model and
+  diff-reuse evidence is what LF-2 needed.
+- Distiller (C2) + triage floor observed live on the whale side of this run:
+  Decisions bullet folded into the project's CONTEXT.md; high-risk keyword →
+  human review under dial=balanced.
 
 ### Tier A — krill: pipeline always-concludes (revised P0-1)
 
@@ -338,16 +414,16 @@ actively-claimed healthy tasks. Verified live at **LF-1**.
 
 | Status | ID | Item | Why | Effort |
 |---|---|---|---|---|
-| ⬜ TODO | A1 | **Force-conclude scanner** — upgrade `runStuckScanner` from notify-only to force-release + park at `NEEDS_REVIEW(stuck)` + `pauseLineForHuman` after hard age cap (`k·max_stage_duration` or N observations) | One backstop catches *every* non-concluding path (AI-REVIEW no-verdict, throw-loops, orphaned claims) regardless of stage — highest leverage, smallest change | M |
-| ⬜ TODO | A2 | **Fix stuck scanner `claimed_until` bug** — filter out actively-claimed tasks (`stuck.ts:47-56`) | Scanner currently flags in-flight tasks as stuck; contradicts its own docstring and `OVERVIEW.md:281`; A1 with teeth would force-kill healthy work without this | S |
-| ⬜ TODO | A3 | **AI-REVIEW incomplete brake** — mirror VERIFY's episode-scoped `[ai-review-incomplete]` counter → park at `NEEDS_REVIEW(declined)` after max cycles | Only remaining model-gated stage; a no-verdict run re-picks forever at full **Opus** cost each loop — cost-justified ahead of the scanner's slower age cap (3–5 Opus spawns would burn before A1 trips); proven pattern + existing test net | M |
+| ✅ DONE | A1 | **Force-conclude scanner** — upgrade `runStuckScanner` from notify-only to force-release + park at `NEEDS_REVIEW(stuck)` + `pauseLineForHuman` after hard age cap (`k·max_stage_duration` or N observations) | One backstop catches *every* non-concluding path (AI-REVIEW no-verdict, throw-loops, orphaned claims) regardless of stage — highest leverage, smallest change | M |
+| ✅ DONE | A2 | **Fix stuck scanner `claimed_until` bug** — filter out actively-claimed tasks (`stuck.ts:47-56`) | Scanner currently flags in-flight tasks as stuck; contradicts its own docstring and `OVERVIEW.md:281`; A1 with teeth would force-kill healthy work without this | S |
+| ✅ DONE | A3 | **AI-REVIEW incomplete brake** — mirror VERIFY's episode-scoped `[ai-review-incomplete]` counter → park at `NEEDS_REVIEW(declined)` after max cycles | Only remaining model-gated stage; a no-verdict run re-picks forever at full **Opus** cost each loop — cost-justified ahead of the scanner's slower age cap (3–5 Opus spawns would burn before A1 trips); proven pattern + existing test net | M |
 | 🚧 GATED | A4 | **Bounded retry-on-throw for PLANNING/IMPLEMENTING** — episode-scoped attempt counter on the timeout/exception path → park after N. **Gate: build only if LF-1's park log shows these throw-loops actually occurring** | Their transitions are code-driven (no no-verdict loop); the throw-loop is theoretically real but has zero observed occurrences — don't build brakes for loops nobody has seen (Caio). A1 concludes them meanwhile | S |
-| ⬜ TODO | A5 | **Escalation lifetime cap** — track `escalation_count` per task; after max, `pauseLineForHuman` instead of re-running the resolver | `task_escalate` resets `resolver_tried:false` every call (`mcp-tools.ts:521-527`) — escalate→resolve→re-escalate can cycle indefinitely (resolver itself already concludes) | S |
-| ⬜ TODO | A6 | **Orphaned-claim boot scanner** — on boot + periodically, force-release claims where `claim_gen != getBootId()` | A dead process strands its claim up to 30 min TTL; `claim_gen` already identifies unambiguously-dead claims but nothing consumes it beyond UI badges | S |
-| ⬜ TODO | A7 | **Orphaned-worktree GC** — boot-time + periodic sweep of worktrees with no matching active task | `removeWorktree` only fires on clean transitions (`cleanup.ts:42`); crashes/deletions leak disk and can collide with `ensureWorkspace` on retry | M |
-| ⬜ TODO | A8 | **Resolver live-repo guard** — if no worktree/workspace exists, defer to human; never run with the live project folder as cwd | `escalation.ts:77-80` falls back to the real repo — an Opus run can mutate production code outside any worktree | S |
-| ⬜ TODO | A9 | **Episode-scope the shared loop-brake** — count stage-tagged markers since `stage_entered_at` in `countAiAutoActions` | Current counter is cross-stage/cross-episode (`loop-brake.ts:19-36`): planning/escalate comments inflate the AI-REVIEW brake → premature or missed parks | M |
-| ⬜ TODO | A10 | **Spec truth pass: `OVERVIEW.md:281,316`** — replace "log + notify, no auto-retry loop" with the bounded brake→park design | The spec actively codifies the notify-only behavior A1 removes; leaving it invites regression to the old design | S |
+| ✅ DONE | A5 | **Escalation lifetime cap** — track `escalation_count` per task; after max, `pauseLineForHuman` instead of re-running the resolver | `task_escalate` resets `resolver_tried:false` every call (`mcp-tools.ts:521-527`) — escalate→resolve→re-escalate can cycle indefinitely (resolver itself already concludes) | S |
+| ✅ DONE | A6 | **Orphaned-claim boot scanner** — on boot + periodically, force-release claims where `claim_gen != getBootId()` | A dead process strands its claim up to 30 min TTL; `claim_gen` already identifies unambiguously-dead claims but nothing consumes it beyond UI badges | S |
+| ✅ DONE | A7 | **Orphaned-worktree GC** — boot-time + periodic sweep of worktrees with no matching active task | `removeWorktree` only fires on clean transitions (`cleanup.ts:42`); crashes/deletions leak disk and can collide with `ensureWorkspace` on retry | M |
+| ✅ DONE | A8 | **Resolver live-repo guard** — if no worktree/workspace exists, defer to human; never run with the live project folder as cwd | `escalation.ts:77-80` falls back to the real repo — an Opus run can mutate production code outside any worktree | S |
+| ✅ DONE | A9 | **Episode-scope the shared loop-brake** (scoped per-stage, deliberately cross-episode) — count stage-tagged markers since `stage_entered_at` in `countAiAutoActions` | Current counter is cross-stage/cross-episode (`loop-brake.ts:19-36`): planning/escalate comments inflate the AI-REVIEW brake → premature or missed parks | M |
+| ✅ DONE | A10 | **Spec truth pass: `OVERVIEW.md:281,316`** — replace "log + notify, no auto-retry loop" with the bounded brake→park design | The spec actively codifies the notify-only behavior A1 removes; leaving it invites regression to the old design | S |
 
 ### Tier B — krill: token cuts (revised P0-2)
 
@@ -358,11 +434,11 @@ B2. No baseline → no B-tier work starts.
 
 | Status | ID | Item | Why | Effort |
 |---|---|---|---|---|
-| ⬜ TODO | B1 | **Persist diff text** — store the unified diff at end of IMPLEMENTING (it's already computed); feed it inline to AI-REVIEW + VERIFY prompts instead of "re-run git diff" | Diff text is re-derived and re-tokenized 2-3× per task (`ai-review-dev.md:7`, `verify-dev.md`); cheapest real cut, no architecture change | M |
-| ⬜ TODO | B2 | **Cheap-first model ladder** — Sonnet first-pass for AI-REVIEW (approve obvious-clean, escalate ambiguous to Opus); resolver on Sonnet, Opus only on defer; **meter the decline-flip rate** as quality guard | Opus pinned unconditionally on AI-REVIEW + every resolver fork (`model-map.ts:5-16`, `escalation.ts:88`) at ~5× Sonnet; metering makes the quality tradeoff observable instead of assumed | M |
-| ⬜ TODO | B3 | **Static-sufficient VERIFY skip** — AI-REVIEW emits a signal that skips the dynamic VERIFY spawn for low-blast-radius static diffs | Only docs-only auto-skips today (`implementing.ts:134-145`); every static code change pays a full spawn AI-REVIEW just cleared | S |
+| ✅ DONE | B1 | **Persist diff text** — store the unified diff at end of IMPLEMENTING (it's already computed); feed it inline to AI-REVIEW + VERIFY prompts instead of "re-run git diff" | Diff text is re-derived and re-tokenized 2-3× per task (`ai-review-dev.md:7`, `verify-dev.md`); cheapest real cut, no architecture change | M |
+| ✅ DONE | B2 | **Cheap-first model ladder** — Sonnet first-pass for AI-REVIEW (approve obvious-clean, escalate ambiguous to Opus); resolver on Sonnet, Opus only on defer; **meter the decline-flip rate** as quality guard | Opus pinned unconditionally on AI-REVIEW + every resolver fork (`model-map.ts:5-16`, `escalation.ts:88`) at ~5× Sonnet; metering makes the quality tradeoff observable instead of assumed | M |
+| ✅ DONE | B3 | **Static-sufficient VERIFY skip** — AI-REVIEW emits a signal that skips the dynamic VERIFY spawn for low-blast-radius static diffs | Only docs-only auto-skips today (`implementing.ts:134-145`); every static code change pays a full spawn AI-REVIEW just cleared | S |
 | 🚧 GATED | B4 | **Session-continuity design spike (not implementation)** — blockers, viable variants (V1 retry-resume … V5 extended TTL), and honest gains are written up in [`docs/session-continuity.md`](docs/session-continuity.md). **Gate: scheduled only if LF-2 shows B1–B3 left a gap worth the redesign; start with V1 (retry-loop resume) if retries still dominate** | The audit's biggest claimed lever (40-70%) doesn't survive contact with the runner: model pinning, per-stage auth tokens, and TTL-blown accumulating context plausibly make naive resume cost *more*. Constrained same-model variants remain viable | M |
-| ⬜ TODO | B5 | **Doc truth pass: `OPERATIONAL_COST.md:39`** — "prompt caching across passes" → "static-prefix caching intra-spawn; no cross-pass session reuse" | Tuning decisions made off this doc credit phantom savings | S |
+| ✅ DONE | B5 | **Doc truth pass: `OPERATIONAL_COST.md:39`** — "prompt caching across passes" → "static-prefix caching intra-spawn; no cross-pass session reuse" | Tuning decisions made off this doc credit phantom savings | S |
 
 ### Tier C — whale: intent capture (P0-3, constrained)
 
@@ -375,14 +451,14 @@ what's measured.
 
 | Status | ID | Item | Why | Effort |
 |---|---|---|---|---|
-| ⬜ TODO | C1 | **Merge-aware onboard** — `onboard()` + manual PUT must preserve Decisions / Standing principles / Open questions sections instead of whole-file replace | Prerequisite for C2/C3: the "context stale — re-audit" UX otherwise **erases the distiller's memory** every re-onboard (`context-store.ts:93` replaces the file) | M |
-| ⬜ TODO | C6 | **Override-rate metric** — crude first cut off existing columns (refine_log lengths + rejected rows per `plan_run_id`); append-only events table later for reject-overwrites and pre-push flag changes | PLAN.md §9 calls this "the single metric that governs autonomy"; nothing measures it — the dial moves by hand. **Resequenced before C2/C3 (Caio): it's the eval for the whole tier — ship the ruler before the thing it measures.** Crude version needs no migration | S (crude) / M (events table) |
-| ⬜ TODO | C2 | **Distiller** — after each plan run (end of `plan()`, `stages.ts:104`), fold served dump text + outcomes into CONTEXT.md via append-and-merge; markdown store only, no DB table | The core gap: whale re-derives intent from raw dumps every run; CONTEXT.md is a static repo audit today. Markdown auto-feeds the planner for free and dodges the runtime-never-migrates trap | M |
-| ⬜ TODO | C3 | **Refine/reject principle capture** — hook in `refine()`/`reject()` (`pipeline.ts:324-346`): extract the WHY behind the redirect via a small LLM call, persist to CONTEXT.md | `refine_log` is write-only (sole reader: a UI badge count) — the next plan run can re-propose exactly what was just redirected away; this signal doesn't exist at plan time so C2 alone can't catch it | M |
-| ⬜ TODO | C4 | **Altitude pass in planner** — pre-propose step classifies dumps SYMPTOM vs CAUSE, may emit one root-cause task superseding per-dump patches; wire a "planned-by-parent" case into `markEntries` | Planner is contractually symptom-level ("every request must yield ≥1 task", `stages.ts:246-254`); without the `markEntries` case, a superseded dump trips `setEntriesPlanError` and reads as a failure. Lands after C6 so its effect on override rate is observable | M |
-| ⬜ TODO | C5 | **Nth-of-class triage flag** — counter keyed on task class; Nth recurrence → route to human review as cause-fix candidate regardless of risk tier | Triage is pure keyword regex on single-task text (`stages.ts:325-342`) — the system auto-bypasses the same trivial patch forever without surfacing "you keep patching X" | S |
-| ⬜ TODO | C7 | **Feed `consensus_log` into nominate** — prior-run owner/nomination patterns per project into Caio's routing step | Routing cold-starts every run (`consensus_log` written at `stages.ts:319`, read only by the UI trail) — mis-routing a class of dump never compounds into learning | S |
-| ⬜ TODO | C8 | **Doc truth pass: PLAN.md** — distiller claims at `:12-13`, `:90`, `:106-108`, `:189-190` (README is fine — attributes context to onboarding) | The doc sells a "living distiller" that doesn't exist; until C2 ships, planning off PLAN.md assumes phantom capability | S |
+| ✅ DONE | C1 | **Merge-aware onboard** — `onboard()` + manual PUT must preserve Decisions / Standing principles / Open questions sections instead of whole-file replace | Prerequisite for C2/C3: the "context stale — re-audit" UX otherwise **erases the distiller's memory** every re-onboard (`context-store.ts:93` replaces the file) | M |
+| ✅ DONE | C6 | **Override-rate metric** — crude first cut off existing columns (refine_log lengths + rejected rows per `plan_run_id`); append-only events table later for reject-overwrites and pre-push flag changes | PLAN.md §9 calls this "the single metric that governs autonomy"; nothing measures it — the dial moves by hand. **Resequenced before C2/C3 (Caio): it's the eval for the whole tier — ship the ruler before the thing it measures.** Crude version needs no migration | S (crude) / M (events table) |
+| ✅ DONE | C2 | **Distiller** (mechanical ledger — WHAT per plan run; WHY lives in C3) — after each plan run (end of `plan()`, `stages.ts:104`), fold served dump text + outcomes into CONTEXT.md via append-and-merge; markdown store only, no DB table | The core gap: whale re-derives intent from raw dumps every run; CONTEXT.md is a static repo audit today. Markdown auto-feeds the planner for free and dodges the runtime-never-migrates trap | M |
+| ✅ DONE | C3 | **Refine/reject principle capture** (verbatim user words — no paraphrase) — hook in `refine()`/`reject()` (`pipeline.ts:324-346`): extract the WHY behind the redirect via a small LLM call, persist to CONTEXT.md | `refine_log` is write-only (sole reader: a UI badge count) — the next plan run can re-propose exactly what was just redirected away; this signal doesn't exist at plan time so C2 alone can't catch it | M |
+| ✅ DONE | C4 | **Altitude pass in planner** (ALTITUDE rule in both task contracts + `sources[]` supersede wiring so folded dumps don't trip plan_error; effect measured at LF-3/4) — pre-propose step classifies dumps SYMPTOM vs CAUSE, may emit one root-cause task superseding per-dump patches; wire a "planned-by-parent" case into `markEntries` | Planner is contractually symptom-level ("every request must yield ≥1 task", `stages.ts:246-254`); without the `markEntries` case, a superseded dump trips `setEntriesPlanError` and reads as a failure. Lands after C6 so its effect on override rate is observable | M |
+| ✅ DONE | C5 | **Nth-of-class triage flag** (≥3 same-label proposals → human review regardless of dial) — counter keyed on task class; Nth recurrence → route to human review as cause-fix candidate regardless of risk tier | Triage is pure keyword regex on single-task text (`stages.ts:325-342`) — the system auto-bypasses the same trivial patch forever without surfacing "you keep patching X" | S |
+| ✅ DONE | C7 | **Feed `consensus_log` into nominate** (prior-routing note from owner outcomes, last 3 runs, hint-not-rule) — prior-run owner/nomination patterns per project into Caio's routing step | Routing cold-starts every run (`consensus_log` written at `stages.ts:319`, read only by the UI trail) — mis-routing a class of dump never compounds into learning | S |
+| ✅ DONE | C8 | **Doc truth pass: PLAN.md** — distiller claims at `:12-13`, `:90`, `:106-108`, `:189-190` (README is fine — attributes context to onboarding) | The doc sells a "living distiller" that doesn't exist; until C2 ships, planning off PLAN.md assumes phantom capability | S |
 
 ### Tier D — cross-cutting / hardening
 
@@ -392,9 +468,9 @@ voice-stripped persona edit that visual inspection would clear.
 
 | Status | ID | Item | Why | Effort |
 |---|---|---|---|---|
-| ⬜ TODO | D1 | **Audit whale's token economics** — meter the consensus fan-out (multiple Opus/Sonnet cold spawns per plan run, `consensus.ts`); switch runner to `--output-format json` for usage/session capture | Blind spot: whale has the same cold-spawn pattern as krill plus a multi-call planner, and its cost was never measured — can't prioritize cuts without numbers | M |
-| ⬜ TODO | D2 | **Voice A/B regression harness** — freeze representative dumps, snapshot persona/plan outputs, diff on any persona/prompt change | Personas hot-reload live with zero gate (`team.ts:4-5`); a voice-stripping edit ships instantly — the exact failure mode already hit once (the 19% compression that inspected clean but A/B-garbled) | M |
-| ⬜ TODO | D3 | **Document `planSingle` as a deliberately-thin baseline** — a comment + doc line; do NOT fatten the control arm (Caio: it's thin by design) | Control injects name/area lines while consensus injects full persona context (`consensus.ts:388` vs `:255`) — undocumented, any A/B conclusion confounds "consensus vs single" with "voice vs no voice"; documenting the asymmetry is the whole fix | S |
+| ✅ DONE | D1 | **Audit whale's token economics** (runner → json envelope; usage.jsonl + GET /api/usage; purpose labels on every call site — numbers accrue from next plan run) — meter the consensus fan-out (multiple Opus/Sonnet cold spawns per plan run, `consensus.ts`); switch runner to `--output-format json` for usage/session capture | Blind spot: whale has the same cold-spawn pattern as krill plus a multi-call planner, and its cost was never measured — can't prioritize cuts without numbers | M |
+| ⬜ TODO | D2 | **Voice A/B regression harness** — deferred: snapshotting behavior requires real model runs (token spend); schedule as its own batch with a fixed dump set — freeze representative dumps, snapshot persona/plan outputs, diff on any persona/prompt change | Personas hot-reload live with zero gate (`team.ts:4-5`); a voice-stripping edit ships instantly — the exact failure mode already hit once (the 19% compression that inspected clean but A/B-garbled) | M |
+| ✅ DONE | D3 | **Document `planSingle` as a deliberately-thin baseline** — a comment + doc line; do NOT fatten the control arm (Caio: it's thin by design) | Control injects name/area lines while consensus injects full persona context (`consensus.ts:388` vs `:255`) — undocumented, any A/B conclusion confounds "consensus vs single" with "voice vs no voice"; documenting the asymmetry is the whole fix | S |
 
 ### Sequencing (with the stop-and-watch intervals)
 
@@ -424,3 +500,24 @@ Self-edit guard applies to every item: all of these route through krill as
 reviewed PRs, never merged unattended. Every phase ends with **build +
 restart** before its LF run — a merged-but-stale server invalidates the
 observation (the A1 lesson).
+
+*(Execution note 2026-07-09: the tracker was in practice executed directly by
+the bridge session — unit-tested, migrated, rebuilt, and live-verified through
+the LF runs — rather than routed as krill self-edit tasks; commits pending
+human word. The self-edit guard statement above described the default route,
+not what happened.)*
+
+---
+
+## Post-execution scorecard — 2026-07-09
+
+| Principle | Where the fleet stands NOW |
+|---|---|
+| Pipeline self-resolves | **Concludes on every path.** Force-conclude scanner (hard cap → park + pause), AI-REVIEW no-verdict brake, escalation lifetime cap, orphan claim/worktree recovery within a minute, live-repo guard. Proven: the LF-0 and LF-1 tasks incl. a decline→fix cycle, zero stalls. |
+| Token economics span sessions | **Measured and laddered.** Opus share 87% → 34% on the first laddered run; diff persisted once and reused; static-skip armed; whale fan-out priced (~$2.2/consensus run). Session reuse correctly rejected on evidence (`docs/session-continuity.md`). |
+| Intent-library method | **Captures and reuses.** Decisions + verbatim refine/reject WHYs fold into CONTEXT.md (merge-safe, deduped, capped); override rate live; altitude rule + Nth-of-class floor + routing memory in the planner. Proven: LF-4 probe — planner respected a day-old principle instead of re-proposing redirected work. |
+| Instruction voice load-bearing | **Unchanged strength; gate still procedural.** Verbatim injection intact; D2 (voice A/B harness) is the one open item. |
+
+Remaining: **D2** (open), A4/B4 (closed by evidence — re-open only if a park
+log shows throw-loops / retries dominate spend), commits (3 repos, pending
+human word).
