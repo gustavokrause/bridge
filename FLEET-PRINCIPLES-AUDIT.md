@@ -1,9 +1,9 @@
 # Fleet Principles Audit — whale + krill
 
-> **STATUS 2026-07-09: EXECUTED.** 23 of 26 tracker items shipped, live-verified
-> and serving; all 5 live-fire checkpoints (LF-0…LF-4) ran with recorded
-> results; A4 + B4 closed by evidence (gates never armed); **D2 is the sole
-> open item** (needs deliberate token spend — see tracker). First full loop on
+> **STATUS 2026-07-09: EXECUTED — tracker complete.** 24 of 26 items shipped
+> and live-verified (incl. D2, the voice harness — built, false-positive mode
+> found and fixed, both proofs green); A4 + B4 closed by evidence (gates never
+> armed). First full loop on
 > the new machinery closed with the LF-1 task: dump → plan → human redo →
 > Sonnet decline → fix → Opus contested approve → verify → PR → **merged to prod**.
 > The sections below are the audit, its verification, and the execution
@@ -469,7 +469,7 @@ voice-stripped persona edit that visual inspection would clear.
 | Status | ID | Item | Why | Effort |
 |---|---|---|---|---|
 | ✅ DONE | D1 | **Audit whale's token economics** (runner → json envelope; usage.jsonl + GET /api/usage; purpose labels on every call site — numbers accrue from next plan run) — meter the consensus fan-out (multiple Opus/Sonnet cold spawns per plan run, `consensus.ts`); switch runner to `--output-format json` for usage/session capture | Blind spot: whale has the same cold-spawn pattern as krill plus a multi-call planner, and its cost was never measured — can't prioritize cuts without numbers | M |
-| ⬜ TODO | D2 | **Voice A/B regression harness** — deferred: snapshotting behavior requires real model runs (token spend); schedule as its own batch with a fixed dump set — freeze representative dumps, snapshot persona/plan outputs, diff on any persona/prompt change | Personas hot-reload live with zero gate (`team.ts:4-5`); a voice-stripping edit ships instantly — the exact failure mode already hit once (the 19% compression that inspected clean but A/B-garbled) | M |
+| ✅ DONE | D2 | **Voice A/B regression harness** — `npm run voice-check` (whale) + frozen fixtures & per-persona baselines living in the personas repo (`tests/voice/`). v2 design: each baseline holds TWO samples per fixture so the judge learns the persona's natural run-to-run variance instead of guessing it (v1 single-sample false-alarmed on an ambiguous fixture — caught and fixed during verification). Proofs: unchanged persona → all-same incl. the previously-flaky fixture; cross-persona sanity → shifted 3/3 with precise behavioral differences (identity, specialty frame, risk posture, ownership). Setup $6.25 (metered under voice:*); ~$0.50 per persona-edit check; exit code gates future automation. | Personas hot-reload live with zero gate (`team.ts:4-5`); a voice-stripping edit ships instantly — the exact failure mode already hit once (the 19% compression that inspected clean but A/B-garbled) | M |
 | ✅ DONE | D3 | **Document `planSingle` as a deliberately-thin baseline** — a comment + doc line; do NOT fatten the control arm (Caio: it's thin by design) | Control injects name/area lines while consensus injects full persona context (`consensus.ts:388` vs `:255`) — undocumented, any A/B conclusion confounds "consensus vs single" with "voice vs no voice"; documenting the asymmetry is the whole fix | S |
 
 ### Sequencing (with the stop-and-watch intervals)
@@ -516,8 +516,7 @@ not what happened.)*
 | Pipeline self-resolves | **Concludes on every path.** Force-conclude scanner (hard cap → park + pause), AI-REVIEW no-verdict brake, escalation lifetime cap, orphan claim/worktree recovery within a minute, live-repo guard. Proven: the LF-0 and LF-1 tasks incl. a decline→fix cycle, zero stalls. |
 | Token economics span sessions | **Measured and laddered.** Opus share 87% → 34% on the first laddered run; diff persisted once and reused; static-skip armed; whale fan-out priced (~$2.2/consensus run). Session reuse correctly rejected on evidence (`docs/session-continuity.md`). |
 | Intent-library method | **Captures and reuses.** Decisions + verbatim refine/reject WHYs fold into CONTEXT.md (merge-safe, deduped, capped); override rate live; altitude rule + Nth-of-class floor + routing memory in the planner. Proven: LF-4 probe — planner respected a day-old principle instead of re-proposing redirected work. |
-| Instruction voice load-bearing | **Unchanged strength; gate still procedural.** Verbatim injection intact; D2 (voice A/B harness) is the one open item. |
+| Instruction voice load-bearing | **Gated.** Verbatim injection intact + `npm run voice-check`: variance-aware A/B harness over frozen fixtures; unchanged persona reads same, a different persona reads shifted 3/3. Persona edits now have a behavioral regression gate. |
 
-Remaining: **D2** (open), A4/B4 (closed by evidence — re-open only if a park
-log shows throw-loops / retries dominate spend), commits (3 repos, pending
-human word).
+Remaining: A4/B4 (closed by evidence — re-open only if a park log shows
+throw-loops / retries dominate spend). Tracker itself: complete.
