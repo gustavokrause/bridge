@@ -240,9 +240,9 @@ add(txt(1012,1137,"HTTP",13,"Geist",400,COP_HI,anchor="middle",ls=3))
 add(f'<path d="M 286 1330 l 14 -7 l -2 7 l 11 6 z" fill="{COP_HI}"/>')
 
 # ============================================================ D — KRILL (the hands)
-seam(1170,"krill — THE HANDS",":3000 · plan→review→implement→AI-review→PR")
+seam(1170,"krill — THE HANDS",":3000 · plan→implement→AI-review→verify→PR")
 # krill swarm
-kstations=[("plan",286),("review",470),("implement",662),("AI-review",854),("PR",1030)]
+kstations=[("plan",286),("implement",470),("AI-review",662),("verify",854),("PR",1030)]
 KSY=1330
 def krill_glyph(cx,cy,sc,rot,fill,op):
     return (f'<g transform="translate({cx:.1f} {cy:.1f}) rotate({rot:.1f}) scale({sc:.2f})" opacity="{op:.2f}">'
