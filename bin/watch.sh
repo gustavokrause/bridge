@@ -28,7 +28,7 @@ q() { sqlite3 "$DB" "$1"; }
 
 dump_usage() {
   echo "--- stage_usage for $TASK ---"
-  q "SELECT stage, model, input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens, round(cost_usd,4), num_turns, duration_ms FROM stage_usage WHERE task_id='$TASK' ORDER BY created_at;"
+  q "SELECT stage, model, resumed, input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens, round(cost_usd,4), num_turns, duration_ms FROM stage_usage WHERE task_id='$TASK' ORDER BY created_at;"
   echo "--- diff_text ---"
   q "SELECT CASE WHEN diff_text IS NULL THEN 'null' ELSE 'yes (' || length(diff_text) || ' chars)' END FROM tasks WHERE id='$TASK';"
 }

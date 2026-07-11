@@ -1,13 +1,13 @@
-# Session continuity (`--resume`) in krill — why not now, how it could work
+# Session continuity (`--resume`) in krill — design record + what shipped
 
 > Companion to tracker item **B4** in [`FLEET-PRINCIPLES-AUDIT.md`](../FLEET-PRINCIPLES-AUDIT.md).
-> Status: design notes, no implementation — and after LF-2, **decided: not
-> scheduled**. B1 (diff persistence = V4), B2 (review ladder = V3's enabler)
-> and B3 (static verify skip) shipped without any resume work and cut the
-> Opus share of task cost 87% → 34%; an observed decline→fix→approve cycle
-> cost $3.50 total. The remaining addressable spend no longer justifies the
-> auth + scheduling rework. Kept as the design record with reopen criteria
-> at the end. (2026-07-10 revision: the ladder also reshaped V1 — see below.)
+> Status: **BUILT 2026-07-10 — V1 + V2 + event-driven chaining.** The original
+> "wait for volume" decision assumed dollars were the binding resource; in
+> practice the fleet runs on a Claude subscription and was **burning the
+> session window** — the quota-headroom trigger fired at once, not at 50
+> tasks/day. Shipped scope and the A/B method are at the end of this doc; the
+> analysis below is the design record (V3's first-review resume stays
+> deliberately rejected — self-review).
 
 ## The idea
 
@@ -116,39 +116,58 @@ recoverable — it assumed cache benefits across model boundaries that cannot
 exist. The realistic ceiling is V1+V2 (or V1+V3), and the ladder + B1 + B3
 already banked much of what that ceiling was worth.
 
-## Decision (2026-07-10, post-LF-2)
+## Decision history
 
-**Not scheduled.** The checkpoint ran: B1–B3 shipped without any resume work
-cut the Opus share of task cost 87% → 34%, VERIFY spawns disappear entirely
-for static diffs, and the observed decline cycle cost $3.50 — the spend this
-spike would attack no longer justifies the MCP-auth redesign plus TTL-aware
-scheduling it requires.
+**2026-07-10, first call (post-LF-2): not scheduled.** Priced in notional
+dollars (~$0.10–1.00/task residual after B1–B3), the rework wasn't worth it
+at a few tasks/day; the plan was to wait for ~50–100 tasks/day.
 
-## The volume strategy (why this waits, and when it stops waiting)
+**2026-07-10, reversed the same day: BUILT (V1 + V2 + chaining).** New fact:
+the fleet runs on the operator's Claude **subscription** — the binding
+resource is the plan's session-window quota, not dollars, and it was already
+saturating. Token reduction pays immediately at any task volume; the
+"quota headroom" trigger effectively fired on day one. The per-task dollar
+table above remains correct — it just measured the wrong constraint.
 
-The residual gain is real but small **per task**, and the cost is
-architectural. Priced at observed numbers (~$4.26/task chains):
+### What shipped (krill, 2026-07-10)
 
-| Variant | Realistic saving per task | What it buys that for |
-|---|---|---|
-| V2 (verify resumes impl session) | ~$0.10–0.15 (verify runs $0.35–0.46; B3 already deletes it for static diffs) | TTL-beating scheduling |
-| V1 (retry resume) | only during decline cycles — brakes cap them at 3 and the observed post-ladder cycle cost $3.50 total | session plumbing |
-| V3 (full warm Sonnet chain) | **~$0.50–1.00 on heavy tasks (10–20%) — the ceiling** | MCP-auth redesign + event-driven scheduling + cold fresh-eyes first review + coupling to `--resume` CLI behavior |
+- **Session capture** — every stage run's `session_id` persists per stage on
+  the task (`tasks.session_map`, JSON `{stage: {id, model, at}}`).
+- **V1 retry-resume** — an IMPLEMENTING redo (decline / verify-fail) resumes
+  its own prior implementing session; a VERIFY retry resumes its prior attempt.
+- **V2 impl→verify** — VERIFYING resumes the implementing session (both
+  Sonnet): diff, files and plan arrive as cache reads instead of re-derivation.
+- **Event-driven chaining** — verdict transitions (impl→next stage,
+  decline→re-implement, verify-fail→re-implement, approve→verify) kick the
+  next stage's tick immediately instead of waiting out the cron slot, keeping
+  same-model hops inside the 5-min cache TTL. Fire-and-forget: every tick
+  guard (claims, stage_enabled, backoff) still applies and the cron stays the
+  fallback.
+- **Guards** (policy: `krill/src/claude/resume.ts`) — same-model only (prompt
+  cache is per-model), fresh-only (≤300s; past the TTL a resume pays
+  cache-write on the whole transcript), **AI-REVIEW never resumes**
+  (fresh-eyes review and the contested Opus fork stay cold by design).
+  Kill switch: `KRILL_RESUME=0`.
+- **The feared MCP-auth rework proved unnecessary** — each resumed spawn gets
+  a fresh stage-scoped token and `--mcp-config` like any spawn; the resumed
+  transcript only supplies context. Stage-auth boundaries unchanged.
+- **A/B instrumentation** — `stage_usage.resumed` marks warm runs; all prior
+  rows are the cold baseline. Compare with:
+  `SELECT stage, resumed, COUNT(*), AVG(cache_read_tokens),
+  AVG(cache_creation_tokens), round(AVG(cost_usd),3), AVG(duration_ms)
+  FROM stage_usage WHERE stage IN ('implementing','verify')
+  GROUP BY stage, resumed;`
 
-At a handful of tasks/day that ceiling is dollars per week against a
-multi-day rework of two security/scheduling boundaries — negative ROI. The
-original 40–70% prize was mostly harvested by cheaper means that shipped
-instead: persist the diff (B1), ladder the models (B2), skip dead verifies
-(B3).
+Spike-proven before building: `--resume` composes with `--print`,
+`--output-format json`, `--mcp-config`, and same-model re-runs; session id
+stays stable and history persists across the resume (~28k cache reads).
 
-**The flip is volume.** At ~50–100 tasks/day, $0.50–1.00/task is real money
-and V3 becomes a legitimate project. Watch it with the meters that already
-exist — `stage_usage` rollups (krill) and `/api/usage` (whale) give
-tasks/day and $/task directly.
+### Still deliberately NOT built
 
-**Reopen when any one holds:**
-- sustained task volume reaches ~50+/day (V3 pays for its rework in weeks);
-- retry cycles (decline/verify-fail) climb back above ~30% of monthly krill
-  spend — then start with V1 on the impl/verify retry paths only;
-- the CLI exposes the 1-hour cache TTL (V5) — re-price V2/V3, since the
-  scheduling rework drops out of the cost side.
+- **V3 first-review resume** — the reviewer inheriting the implementer's
+  session is self-review; fresh-eyes first review and the cold contested Opus
+  fork are quality architecture, and review is the cheapest stage anyway.
+- **V5 (1-hour cache TTL)** — CLI support unverified; re-check if chaining
+  proves insufficient to stay inside the 5-min window in practice.
+- Revisit either only if the A/B rows show warm hops still missing cache
+  (chaining too slow) or review spend becomes material.
