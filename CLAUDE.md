@@ -6,6 +6,7 @@ any part with the personas loaded.
 
 > Need the plain-words pitch (one-liner / analogy / 30-sec)? → [`docs/PITCH.md`](docs/PITCH.md).
 > What is this leverage worth, and where to point it (employment vs contracting vs products)? → [`docs/operator-leverage.md`](docs/operator-leverage.md).
+> The operator layer above the gates (designed, not built) → [`docs/helm.md`](docs/helm.md).
 
 ## The fleet (topology)
 
