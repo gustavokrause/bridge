@@ -5,6 +5,7 @@ and operate the whole system: start/stop the apps, diagnose them, and work on
 any part with the personas loaded.
 
 > Need the plain-words pitch (one-liner / analogy / 30-sec)? → [`docs/PITCH.md`](docs/PITCH.md).
+> What is this leverage worth, and where to point it (employment vs contracting vs products)? → [`docs/operator-leverage.md`](docs/operator-leverage.md).
 
 ## The fleet (topology)
 
